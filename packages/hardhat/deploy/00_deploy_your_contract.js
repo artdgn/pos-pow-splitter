@@ -71,7 +71,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   //   if (chainId !== localChainId) {
   //     await run("verify:verify", {
   //       address: YourContract.address,
-  //       contract: "contracts/YourContract.sol:YourContract",
+  //       contract: "contracts/PoSPoWSplitter.sol:YourContract",
   //       constructorArguments: [],
   //     });
   //   }

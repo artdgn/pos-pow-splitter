@@ -152,7 +152,7 @@ export default function ExampleUI({
 
       {/*
         📑 Maybe display a list of events?
-          (uncomment the event and emit line in YourContract.sol! )
+          (uncomment the event and emit line in PoSPoWSplitter.sol! )
       */}
       <Events
         contracts={readContracts}
