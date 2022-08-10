@@ -2,8 +2,6 @@
 
 const { ethers } = require("hardhat");
 
-const localChainId = "31337";
-
 // const sleep = (ms) =>
 //   new Promise((r) =>
 //     setTimeout(() => {
@@ -12,21 +10,29 @@ const localChainId = "31337";
 //     }, ms)
 //   );
 
+const deployArgsMap = {
+  31337: [10],
+  420: [10790000], // goerli
+  1: null, // unknown yet
+};
+
 module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  await deploy("YourContract", {
+  const deployArgs = deployArgsMap[chainId];
+
+  await deploy("PoSPoWSplitter", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    // args: [ "Hello", ethers.utils.parseEther("1.5") ],
+    args: deployArgs,
     log: true,
-    waitConfirmations: 5,
+    waitConfirmations: 1,
   });
 
   // Getting a previously deployed contract
-  const YourContract = await ethers.getContract("YourContract", deployer);
+  const PoSPoWSplitter = await ethers.getContract("PoSPoWSplitter", deployer);
   /*  await YourContract.setPurpose("Hello");
   
     // To take ownership of yourContract using the ownable library uncomment next line and add the 
@@ -79,4 +85,4 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   //   console.error(error);
   // }
 };
-module.exports.tags = ["YourContract"];
+module.exports.tags = ["PoSPoWSplitter"];
