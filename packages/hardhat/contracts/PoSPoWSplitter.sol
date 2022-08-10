@@ -12,40 +12,36 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// Supports sending ETH, ERC20, ERC721, and arbitrary low level calls (except payable low level calls)
 ///
 /// Assumptions:
-///     - TTD set in constructor will be correct. If this is not the case, resolveFork may resolve incorrectly
-///     - block.difficulty reports TTD on POW chain correctly (and wasn't updated in client to be over 2^64)
+///     - The contract is deployed before the fork to ensure that it exists on both forks.
+///     - Caller knows that the fork already occurred.
+///     - block.difficulty reports difficulty on POW chain correctly (and wasn't updated in client to be over 2^64)
 contract PoSPoWSplitter {
     using SafeERC20 for IERC20;
 
     /******* Event ********/
-    event ForkResolved(bool isPOWFork, bool isPOSFork);
+    event PoSForkResolved();
 
     /******* Modifiers ********/
-    modifier onlyOnPOW() {
-        require(isPOWFork, "not on POW fork");
+    modifier onlyOnPOS() {
+        require(isPOSFork, "only on POS fork");
         _;
     }
 
-    modifier onlyOnPOS() {
-        require(isPOSFork, "not on POS fork");
+    modifier notOnPOS() {
+        require(!isPOSFork, "only not on POS fork");
         _;
     }
 
     /******* Constants & Storage ********/
 
-    /// TTD after which fork can be resolved
-    uint immutable public targetTTD;
-
-    /// flags for resolved fork state, only one can be true after being resolved, both are false initially
-    bool public isPOWFork;
+    /// flag for resolved POS state
     bool public isPOSFork;
 
-    /// @param _ttd: terminal total difficulty after which the fork choice can be resolved
-    /// if TTD is altered after deployment - have to deploy a different copy before TTD is reached
-    /// goerli TTD: 10790000
-    /// mainnet TTD: TBD..
-    constructor(uint _ttd) {
-        targetTTD = _ttd;
+    uint immutable public difficultyThresholdPOS;
+
+    constructor(uint _threshold) {
+        // threshold is settable to facilitate testing
+        difficultyThresholdPOS = _threshold;
     }
 
     /******* Views ********/
@@ -57,21 +53,18 @@ contract PoSPoWSplitter {
 
     /******* Mutative ********/
 
-    /// can run only once after difficulty > TTD
-    /// will result in either isPOS or isPOW stored as true
+    /// can run set isPOSFork once after difficulty > TTD
+    /// before that will revert, and after that will revert as well
     function resolveFork() external {
-        require(!isPOSFork && !isPOWFork, "already resolved");
-
-        require(block.difficulty > targetTTD, "TTD not reached");
-        // can be >= but not really important
+        require(!isPOSFork, "already resolved");
 
         // resolve according to https://eips.ethereum.org/EIPS/eip-4399
-        if (block.difficulty > 1 << 64) {
-            isPOSFork = true;
-        } else {
-            isPOWFork = true;
-        }
-        emit ForkResolved(isPOWFork, isPOSFork);
+        require(block.difficulty > difficultyThresholdPOS, "block difficulty too low");
+
+        // set the flag
+        isPOSFork = true;
+
+        emit PoSForkResolved();
     }
 
     /******* Generic calls ********/
@@ -81,7 +74,7 @@ contract PoSPoWSplitter {
         address target,
         bytes calldata data,
         bool requireSuccess
-    ) external onlyOnPOW returns (bool, bytes memory) {
+    ) external notOnPOS returns (bool, bytes memory) {
         return _lowLevelCall(target, data, requireSuccess);
     }
 
@@ -96,7 +89,7 @@ contract PoSPoWSplitter {
 
     /******* Sending ETH ********/
 
-    function sendETHPOW(address to) external payable onlyOnPOW {
+    function sendETHPOW(address to) external payable notOnPOS {
         _sendETH(to);
     }
 
@@ -109,7 +102,7 @@ contract PoSPoWSplitter {
     /// ERC721 has same signature for "transferFrom" but different meaning to the last "uint256" (tokenId vs. amount)
 
     /// assumes approval was granted
-    function safeTransferTokenPOW(address token, address to, uint amountOrId) external onlyOnPOW {
+    function safeTransferTokenPOW(address token, address to, uint amountOrId) external notOnPOS {
         _safeTokenTransfer(token, to, amountOrId);
     }
 
@@ -124,7 +117,7 @@ contract PoSPoWSplitter {
         address token,
         address to,
         uint amountOrId
-    ) external onlyOnPOW returns (bool, bytes memory) {
+    ) external notOnPOS returns (bool, bytes memory) {
         return _unsafeTokenTransfer(token, to, amountOrId);
     }
 
