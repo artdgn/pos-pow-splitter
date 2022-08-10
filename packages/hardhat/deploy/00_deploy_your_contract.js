@@ -12,8 +12,8 @@ const { ethers } = require("hardhat");
 
 const deployArgsMap = {
   31337: [10],
-  5: [10790000], // goerli
-  1: null, // unknown yet
+  5: ['18446744073709551616'],
+  1: ['18446744073709551616'],
 };
 
 module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
