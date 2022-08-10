@@ -12,7 +12,7 @@ const { ethers } = require("hardhat");
 
 const deployArgsMap = {
   31337: [10],
-  420: [10790000], // goerli
+  5: [10790000], // goerli
   1: null, // unknown yet
 };
 

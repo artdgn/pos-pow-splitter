@@ -12,15 +12,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// Supports sending ETH, ERC20, ERC721, and arbitrary low level calls (except payable low level calls)
 ///
 /// Assumptions:
-///     TTD set in constructor will be correct. If this is not the case, resolveFork may incorrectly
-///     block.difficulty reports TTD on POW chain (and wasn't updated in client to be over 2^64)
+///     - TTD set in constructor will be correct. If this is not the case, resolveFork may resolve incorrectly
+///     - block.difficulty reports TTD on POW chain correctly (and wasn't updated in client to be over 2^64)
 contract PoSPoWSplitter {
     using SafeERC20 for IERC20;
 
-    ////// Event
+    /******* Event ********/
     event ForkResolved(bool isPOWFork, bool isPOSFork);
 
-    ////// Modifiers
+    /******* Modifiers ********/
     modifier onlyOnPOW() {
         require(isPOWFork, "not on POW fork");
         _;
@@ -31,12 +31,12 @@ contract PoSPoWSplitter {
         _;
     }
 
-    ////// Constrants & Storage
+    /******* Constants & Storage ********/
 
     /// TTD after which fork can be resolved
     uint immutable public targetTTD;
 
-    /// flags for resolved fork state, only one can be true after being resolved, both are false before
+    /// flags for resolved fork state, only one can be true after being resolved, both are false initially
     bool public isPOWFork;
     bool public isPOSFork;
 
@@ -48,14 +48,14 @@ contract PoSPoWSplitter {
         targetTTD = _ttd;
     }
 
-    ////// Views
+    /******* Views ********/
 
     // convenience view
     function difficulty() external view returns (uint) {
         return block.difficulty;
     }
 
-    ////// Mutative
+    /******* Mutative ********/
 
     /// can run only once after difficulty > TTD
     /// will result in either isPOS or isPOW stored as true
@@ -74,7 +74,7 @@ contract PoSPoWSplitter {
         emit ForkResolved(isPOWFork, isPOSFork);
     }
 
-    ////// Generic calls
+    /******* Generic calls ********/
 
     /// not payable to avoid trapping ETH
     function lowLevelCallPOW(
@@ -94,7 +94,7 @@ contract PoSPoWSplitter {
         return _lowLevelCall(target, data, requireSuccess);
     }
 
-    ////// Sending ETH
+    /******* Sending ETH ********/
 
     function sendETHPOW(address to) external payable onlyOnPOW {
         _sendETH(to);
@@ -104,7 +104,7 @@ contract PoSPoWSplitter {
         _sendETH(to);
     }
 
-    ////// ERC20 & ERC721
+    /******* ERC20 & ERC721 ********/
 
     /// ERC721 has same signature for "transferFrom" but different meaning to the last "uint256" (tokenId vs. amount)
 
@@ -138,7 +138,7 @@ contract PoSPoWSplitter {
         return _unsafeTokenTransfer(token, to, amountOrId);
     }
 
-    ///// Internal methods
+    /******* Internal methods ********/
 
     function _lowLevelCall(
         address target,
@@ -166,5 +166,4 @@ contract PoSPoWSplitter {
             abi.encodeWithSignature("transferFrom(address,address,uint256)", msg.sender, to, amountOrId)
         );
     }
-
 }
