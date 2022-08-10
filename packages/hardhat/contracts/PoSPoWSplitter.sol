@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 ///
 /// Using the block.difficulty check from https://eips.ethereum.org/EIPS/eip-4399
 ///
-/// Supports sending ETH, ERC20, ERC721, and arbitrary low level calls (except payable low level calls)
+/// Supports sending ETH, ERC20, ERC721 (or any contract with transferFrom)
 ///
 /// Assumptions:
 ///     - The contract is deployed before the fork to ensure that it exists on both forks.
@@ -67,26 +67,6 @@ contract PoSPoWSplitter {
         emit PoSForkResolved();
     }
 
-    /******* Generic calls ********/
-
-    /// not payable to avoid trapping ETH
-    function lowLevelCallPOW(
-        address target,
-        bytes calldata data,
-        bool requireSuccess
-    ) external notOnPOS returns (bool, bytes memory) {
-        return _lowLevelCall(target, data, requireSuccess);
-    }
-
-    /// not payable to avoid trapping ETH
-    function lowLevelCallPOS(
-        address target,
-        bytes calldata data,
-        bool requireSuccess
-    ) external onlyOnPOS returns (bool, bytes memory) {
-        return _lowLevelCall(target, data, requireSuccess);
-    }
-
     /******* Sending ETH ********/
 
     function sendETHPOW(address to) external payable notOnPOS {
@@ -110,38 +90,7 @@ contract PoSPoWSplitter {
     function safeTransferTokenPOS(address token, address to, uint amountOrId) external onlyOnPOS {
         _safeTokenTransfer(token, to, amountOrId);
     }
-
-    /// assumes approval was granted
-    /// can be more gas efficient, but will not revert if e.g. approval was insufficient
-    function unsafeTransferTokenPOW(
-        address token,
-        address to,
-        uint amountOrId
-    ) external notOnPOS returns (bool, bytes memory) {
-        return _unsafeTokenTransfer(token, to, amountOrId);
-    }
-
-    /// assumes approval was granted
-    /// can be more gas efficient, but will not revert if e.g. approval was insufficient
-    function unsafeTransferTokenPOS(
-        address token,
-        address to,
-        uint amountOrId
-    ) external onlyOnPOS returns (bool, bytes memory){
-        return _unsafeTokenTransfer(token, to, amountOrId);
-    }
-
     /******* Internal methods ********/
-
-    function _lowLevelCall(
-        address target,
-        bytes calldata data,
-        bool requireSuccess
-    ) internal returns (bool, bytes memory) {
-        (bool success, bytes memory returnData) = address(target).call(data);
-        require(!requireSuccess || success, "call unsuccessful");
-        return (success, returnData);
-    }
 
     function _sendETH(address to) internal {
         (bool success, ) = address(to).call{value : msg.value}("");
@@ -150,13 +99,5 @@ contract PoSPoWSplitter {
 
     function _safeTokenTransfer(address token, address to, uint amountOrId) internal {
         IERC20(token).safeTransferFrom(msg.sender, to, amountOrId);
-    }
-
-    function _unsafeTokenTransfer(address token, address to, uint amountOrId) internal returns (bool, bytes memory) {
-        // don't care about return value here, if it failed it failed
-        // caller should check balanceOf to be sure anyway
-        return address(token).call(
-            abi.encodeWithSignature("transferFrom(address,address,uint256)", msg.sender, to, amountOrId)
-        );
     }
 }

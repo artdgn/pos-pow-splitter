@@ -82,23 +82,6 @@ describe("PoSPoWSplitter", function () {
             .safeTransferTokenPOS(tokenERC20.address, addr2.address, 100)
         ).to.revertedWith("only on POS fork");
       });
-
-      it("can unsafeTransferTokenPOW", async function () {
-        const addr2Start = await tokenERC20.balanceOf(addr2.address);
-        await instance
-          .connect(addr1)
-          .unsafeTransferTokenPOW(tokenERC20.address, addr2.address, 100);
-        const addr2End = await tokenERC20.balanceOf(addr2.address);
-        await expect(addr2End.sub(addr2Start)).to.equal(100);
-      });
-
-      it("cannot unsafeTransferTokenPOW", async function () {
-        await expect(
-          instance
-            .connect(addr1)
-            .unsafeTransferTokenPOS(tokenERC20.address, addr2.address, 100)
-        ).to.revertedWith("only on POS fork");
-      });
     });
 
     describe("sending ERC721", function () {
@@ -116,68 +99,6 @@ describe("PoSPoWSplitter", function () {
           instance
             .connect(addr1)
             .safeTransferTokenPOS(tokenERC721.address, addr2.address, 100)
-        ).to.revertedWith("only on POS fork");
-      });
-
-      it("can unsafeTransferTokenPOW", async function () {
-        const addr2Start = await tokenERC721.balanceOf(addr2.address);
-        await instance
-          .connect(addr1)
-          .unsafeTransferTokenPOW(tokenERC721.address, addr2.address, 20);
-        const addr2End = await tokenERC721.balanceOf(addr2.address);
-        await expect(addr2End.sub(addr2Start)).to.equal(1);
-      });
-
-      it("cannot unsafeTransferTokenPOW", async function () {
-        await expect(
-          instance
-            .connect(addr1)
-            .unsafeTransferTokenPOS(tokenERC721.address, addr2.address, 100)
-        ).to.revertedWith("only on POS fork");
-      });
-    });
-
-    describe("low level call", function () {
-      it("can lowLevelCallPOW successfully", async function () {
-        const calldata = tokenERC20.interface.encodeFunctionData(
-          "transferFrom",
-          [addr1.address, addr2.address, 100]
-        );
-
-        const addr2Start = await tokenERC20.balanceOf(addr2.address);
-        await instance
-          .connect(addr1)
-          .lowLevelCallPOW(tokenERC20.address, calldata, true);
-        const addr2End = await tokenERC20.balanceOf(addr2.address);
-        await expect(addr2End.sub(addr2Start)).to.equal(100);
-      });
-
-      it("requireSuccess controls reverting for lowLevelCallPOW", async function () {
-        const calldata = tokenERC20.interface.encodeFunctionData(
-          "transferFrom",
-          [addr1.address, addr2.address, 100000] // not enough approval
-        );
-        await expect(
-          instance
-            .connect(addr1)
-            .lowLevelCallPOW(tokenERC20.address, calldata, true)
-        ).to.revertedWith("call unsuccessful");
-
-        // but pass if false
-        await instance
-          .connect(addr1)
-          .lowLevelCallPOW(tokenERC20.address, calldata, false);
-      });
-
-      it("cannot lowLevelCallPOS", async function () {
-        const calldata = tokenERC20.interface.encodeFunctionData(
-          "transferFrom",
-          [addr1.address, addr2.address, 100]
-        );
-        await expect(
-          instance
-            .connect(addr1)
-            .lowLevelCallPOS(tokenERC20.address, calldata, true)
         ).to.revertedWith("only on POS fork");
       });
     });
@@ -239,23 +160,6 @@ describe("PoSPoWSplitter", function () {
               .safeTransferTokenPOW(tokenERC20.address, addr2.address, 100)
           ).to.revertedWith("not on POS fork");
         });
-
-        it("can unsafeTransferTokenPOS", async function () {
-          const addr2Start = await tokenERC20.balanceOf(addr2.address);
-          await instance
-            .connect(addr1)
-            .unsafeTransferTokenPOS(tokenERC20.address, addr2.address, 100);
-          const addr2End = await tokenERC20.balanceOf(addr2.address);
-          await expect(addr2End.sub(addr2Start)).to.equal(100);
-        });
-
-        it("cannot unsafeTransferTokenPOW", async function () {
-          await expect(
-            instance
-              .connect(addr1)
-              .unsafeTransferTokenPOW(tokenERC20.address, addr2.address, 100)
-          ).to.revertedWith("not on POS fork");
-        });
       });
 
       describe("sending ERC721", function () {
@@ -273,68 +177,6 @@ describe("PoSPoWSplitter", function () {
             instance
               .connect(addr1)
               .safeTransferTokenPOW(tokenERC721.address, addr2.address, 100)
-          ).to.revertedWith("not on POS fork");
-        });
-
-        it("can unsafeTransferTokenPOS", async function () {
-          const addr2Start = await tokenERC721.balanceOf(addr2.address);
-          await instance
-            .connect(addr1)
-            .unsafeTransferTokenPOS(tokenERC721.address, addr2.address, 20);
-          const addr2End = await tokenERC721.balanceOf(addr2.address);
-          await expect(addr2End.sub(addr2Start)).to.equal(1);
-        });
-
-        it("cannot unsafeTransferTokenPOW", async function () {
-          await expect(
-            instance
-              .connect(addr1)
-              .unsafeTransferTokenPOW(tokenERC721.address, addr2.address, 100)
-          ).to.revertedWith("not on POS fork");
-        });
-      });
-
-      describe("low level call", function () {
-        it("can lowLevelCallPOS successfully", async function () {
-          const calldata = tokenERC20.interface.encodeFunctionData(
-            "transferFrom",
-            [addr1.address, addr2.address, 100]
-          );
-
-          const addr2Start = await tokenERC20.balanceOf(addr2.address);
-          await instance
-            .connect(addr1)
-            .lowLevelCallPOS(tokenERC20.address, calldata, true);
-          const addr2End = await tokenERC20.balanceOf(addr2.address);
-          await expect(addr2End.sub(addr2Start)).to.equal(100);
-        });
-
-        it("requireSuccess controls reverting for lowLevelCallPOS", async function () {
-          const calldata = tokenERC20.interface.encodeFunctionData(
-            "transferFrom",
-            [addr1.address, addr2.address, 100000] // not enough approval
-          );
-          await expect(
-            instance
-              .connect(addr1)
-              .lowLevelCallPOS(tokenERC20.address, calldata, true)
-          ).to.revertedWith("call unsuccessful");
-
-          // but pass if false
-          await instance
-            .connect(addr1)
-            .lowLevelCallPOS(tokenERC20.address, calldata, false);
-        });
-
-        it("cannot lowLevelCallPOW", async function () {
-          const calldata = tokenERC20.interface.encodeFunctionData(
-            "transferFrom",
-            [addr1.address, addr2.address, 100]
-          );
-          await expect(
-            instance
-              .connect(addr1)
-              .lowLevelCallPOW(tokenERC20.address, calldata, true)
           ).to.revertedWith("not on POS fork");
         });
       });
