@@ -19,23 +19,23 @@ contract PoSPoWSplitter {
     using SafeERC20 for IERC20;
 
     /******* Event ********/
-    event PoSForkResolved();
+    event PoSForkRecorded();
 
     /******* Modifiers ********/
     modifier onlyOnPOS() {
-        require(isPOSFork, "only on POS fork");
+        require(_onPOSCHain(), "only on POS fork");
         _;
     }
 
     modifier notOnPOS() {
-        require(!isPOSFork, "only not on POS fork");
+        require(!_onPOSCHain(), "only not on POS fork");
         _;
     }
 
     /******* Constants & Storage ********/
 
     /// flag for resolved POS state
-    bool public isPOSFork;
+    bool public thresholdPassedRecorded;
 
     uint immutable public difficultyThresholdPOS;
 
@@ -44,27 +44,34 @@ contract PoSPoWSplitter {
         difficultyThresholdPOS = _threshold;
     }
 
-    /******* Views ********/
+    /******* External views ********/
 
     // convenience view
     function difficulty() external view returns (uint) {
         return block.difficulty;
     }
 
+    function onPOSCHain() external view returns (bool) {
+        return _onPOSCHain();
+    }
+
+    /******* Internal views ********/
+
+    function _onPOSCHain() internal view returns (bool) {
+        // Rither the difficulty is above threshold or it was previously recorded to be above threshold.
+        // This is needed because there's a very small chance that RANDAO can return a value under the threshold
+        // an any specific time (although highly unlikely)
+        return block.difficulty > difficultyThresholdPOS || thresholdPassedRecorded;
+    }
+
     /******* Mutative ********/
 
     /// can run set isPOSFork once after difficulty > TTD
     /// before that will revert, and after that will revert as well
-    function resolveFork() external {
-        require(!isPOSFork, "already resolved");
-
-        // resolve according to https://eips.ethereum.org/EIPS/eip-4399
-        require(block.difficulty > difficultyThresholdPOS, "block difficulty too low");
-
-        // set the flag
-        isPOSFork = true;
-
-        emit PoSForkResolved();
+    function recordThresholdPassed() external onlyOnPOS {
+        require(!thresholdPassedRecorded, "already recorded");
+        thresholdPassedRecorded = true;
+        emit PoSForkRecorded();
     }
 
     /******* Sending ETH ********/
@@ -90,7 +97,8 @@ contract PoSPoWSplitter {
     function safeTransferTokenPOS(address token, address to, uint amountOrId) external onlyOnPOS {
         _safeTokenTransfer(token, to, amountOrId);
     }
-    /******* Internal methods ********/
+
+    /******* Internal mutative ********/
 
     function _sendETH(address to) internal {
         (bool success, ) = address(to).call{value : msg.value}("");
