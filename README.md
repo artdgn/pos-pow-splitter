@@ -1,4 +1,4 @@
-# A contract that will transfer ETH / ERC20 / ERC721 only one fork but not the other
+# A contract that will transfer ETH / ERC20 / ERC721 on only one fork but not the other
 
 # Deployed:
 
